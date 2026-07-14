@@ -34,7 +34,7 @@ discovery from another machine.
 --ctid N              container ID            (default: next free ID)
 --hostname NAME       CT hostname             (default: noso)
 --room NAME           Sonos room name         (default: Noso)
---storage NAME        rootfs storage          (default: local-lvm)
+--storage NAME        rootfs storage          (default: auto-detect)
 --template-storage N  CT template storage     (default: local)
 --bridge NAME         network bridge          (default: vmbr0)
 --ip CIDR|dhcp        e.g. 192.168.1.50/24    (default: dhcp)

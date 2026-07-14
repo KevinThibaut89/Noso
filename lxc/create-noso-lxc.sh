@@ -30,7 +30,8 @@ set -euo pipefail
 CTID=""                    # empty -> next free ID from the cluster
 HOSTNAME="noso"
 ROOM="Noso"
-STORAGE="local-lvm"        # rootfs storage
+STORAGE=""                 # rootfs storage; empty -> auto-detect (first active
+                           # storage that supports container root disks)
 TEMPLATE_STORAGE="local"   # storage that holds CT templates (needs 'vztmpl')
 BRIDGE="vmbr0"
 IP="dhcp"                  # or CIDR like 192.168.1.50/24 (then set --gw)
@@ -50,7 +51,7 @@ Options:
   --ctid N              container ID            (default: next free ID)
   --hostname NAME       CT hostname             (default: ${HOSTNAME})
   --room NAME           Sonos room name         (default: ${ROOM})
-  --storage NAME        rootfs storage          (default: ${STORAGE})
+  --storage NAME        rootfs storage          (default: auto-detect)
   --template-storage N  template storage        (default: ${TEMPLATE_STORAGE})
   --bridge NAME         network bridge          (default: ${BRIDGE})
   --ip CIDR|dhcp        IP config               (default: ${IP})
@@ -104,6 +105,18 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if [[ "$IP" != "dhcp" && -z "$GW" ]]; then
     die "--ip $IP is static; a gateway is required (--gw)"
+fi
+
+# Pick a rootfs storage: prefer an explicit --storage, otherwise the first
+# active storage that can hold container root disks ('rootdir' content).
+if [[ -z "$STORAGE" ]]; then
+    STORAGE="$(pvesm status -content rootdir 2>/dev/null \
+               | awk 'NR>1 && $3=="active" {print $1}' | head -n1)"
+    [[ -n "$STORAGE" ]] || die "no active storage supports container disks (rootdir) — pass --storage NAME (see 'pvesm status')"
+    log "Auto-selected rootfs storage: $STORAGE"
+else
+    pvesm status -content rootdir 2>/dev/null | awk 'NR>1 {print $1}' | grep -qx "$STORAGE" \
+        || die "storage '$STORAGE' does not exist or cannot hold container disks (see 'pvesm status -content rootdir')"
 fi
 
 if [[ -z "$CTID" ]]; then
