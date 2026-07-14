@@ -11,10 +11,24 @@ On the **Proxmox host**, as root:
 ```bash
 git clone https://github.com/KevinThibaut89/Noso.git
 cd Noso
-bash lxc/create-noso-lxc.sh --room "Kitchen"
+bash lxc/create-noso-lxc.sh
 ```
 
-That single command:
+Run with **no arguments** you get an interactive wizard (in the style of the
+[community-scripts](https://community-scripts.org) installers): choose
+**Default Settings** (next free CT ID, 1 CPU, 512 MB RAM, 4 GB disk, DHCP on
+`vmbr0`) or **Advanced Settings** to pick the CT ID, resources, storage,
+bridge, static IP, audio passthrough, and privileged/unprivileged. Either way
+you're asked for the Sonos room name and shown a summary before anything is
+created.
+
+Passing any flag skips the wizard and runs non-interactively:
+
+```bash
+bash lxc/create-noso-lxc.sh --room "Kitchen" --audio
+```
+
+The build:
 
 1. downloads the Debian 12 standard CT template (if not cached),
 2. creates an unprivileged container (1 core, 512 MB RAM, 4 GB disk, DHCP on
@@ -28,7 +42,7 @@ That single command:
 When it finishes it prints the container's IP and a SoCo one-liner to verify
 discovery from another machine.
 
-## Options
+## Options (non-interactive mode)
 
 ```
 --ctid N              container ID            (default: next free ID)

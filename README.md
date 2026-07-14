@@ -160,7 +160,7 @@ A one-command provisioner is included: on the Proxmox host,
 
 ```bash
 git clone https://github.com/KevinThibaut89/Noso.git && cd Noso
-bash lxc/create-noso-lxc.sh --room "Kitchen"          # add --audio for host sound-card output
+bash lxc/create-noso-lxc.sh    # interactive wizard; or pass flags, e.g. --room "Kitchen" --audio
 ```
 
 It creates a Debian 12 container on your LAN bridge (SSDP multicast works out
