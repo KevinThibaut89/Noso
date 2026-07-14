@@ -36,14 +36,19 @@ class Config:
     """All tunables for one emulated ZonePlayer."""
 
     room_name: str = "Noso"
-    # Identity presented in device_description.xml + ZoneGroupState. Defaults
-    # mimic a Sonos PLAY:3; override to match a model you actually own for the
-    # best chance of the app accepting it.
-    model_name: str = "Sonos PLAY:3"
-    model_number: str = "S3"
-    software_version: str = "56.0-76060"
-    min_compatible_version: str = "55.0-00000"
-    legacy_compatible_version: str = "24.0-0000"
+    # Identity presented in device_description.xml + ZoneGroupState + /info.
+    # Defaults mimic a current-firmware Sonos Connect (ZP90) — a line-out network
+    # receiver, which is what Noso is. The version fields MUST be S2-current or
+    # the app classifies the device as S1 and demands a system update. Values
+    # captured from a real S2 household (app 17.2.5). Override to match a model
+    # you actually own for the best chance of the app accepting it.
+    model_name: str = "Sonos Connect"
+    model_number: str = "ZP90"
+    software_version: str = "86.7-77050"
+    display_version: str = "17.2.5"  # marketing version the app shows
+    hardware_version: str = "1.17.5.5-2.0"
+    min_compatible_version: str = "85.0-00000"
+    legacy_compatible_version: str = "58.0-00000"
     icon: str = "x-rincon-roomicon:living"
 
     interface_ip: Optional[str] = None  # LAN IP to advertise (autodetect if None)
