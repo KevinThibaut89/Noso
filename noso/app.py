@@ -22,14 +22,18 @@ from .services.contentdirectory import ContentDirectoryService
 from .services.deviceproperties import DevicePropertiesService
 from .services.queue import QueueService
 from .services.renderingcontrol import RenderingControlService
+from .mdns import MdnsAdvertiser
 from .services.stubs import (
     AlarmClockService,
+    AudioInService,
     ConnectionManagerMR,
     ConnectionManagerMS,
     GroupManagementService,
     GroupRenderingControlService,
     MusicServicesService,
+    QPlayService,
     SystemPropertiesService,
+    VirtualLineInService,
 )
 from .services.zonegrouptopology import ZoneGroupTopologyService
 from .ssdp import SsdpServer
@@ -43,10 +47,12 @@ AVT_TYPE = "urn:schemas-upnp-org:service:AVTransport:1"
 _SERVICE_CLASSES = [
     AlarmClockService,
     MusicServicesService,
+    AudioInService,
     DevicePropertiesService,
     SystemPropertiesService,
     ZoneGroupTopologyService,
     GroupManagementService,
+    QPlayService,
     ContentDirectoryService,
     ConnectionManagerMS,
     RenderingControlService,
@@ -54,6 +60,7 @@ _SERVICE_CLASSES = [
     AVTransportService,
     QueueService,
     GroupRenderingControlService,
+    VirtualLineInService,
 ]
 
 
@@ -64,6 +71,7 @@ class NosoApp:
         self.services: list = []
         self.http: HttpServer | None = None
         self.ssdp: SsdpServer | None = None
+        self.mdns: MdnsAdvertiser | None = None
 
     def build(self) -> ServerContext:
         cfg = self.config
@@ -102,6 +110,10 @@ class NosoApp:
             log.warning("SSDP discovery unavailable (%s); continuing without it", exc)
             self.ssdp = None
 
+        # mDNS is what the *modern* app uses to discover speakers.
+        self.mdns = MdnsAdvertiser(ctx)
+        await self.mdns.start()
+
         log.info(
             "Noso up: room=%r uid=%s at %s (audio=%s)",
             ctx.state.room_name,
@@ -121,6 +133,8 @@ class NosoApp:
         ctx.player.set_callbacks(on_state=notify_transport, on_eos=notify_transport)
 
     async def stop(self) -> None:
+        if self.mdns:
+            await self.mdns.stop()
         if self.ssdp:
             await self.ssdp.stop()  # multicasts ssdp:byebye
         if self.http:

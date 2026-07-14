@@ -10,6 +10,7 @@ simpler and more faithful than bending a general framework. Responses use
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from urllib.parse import urlsplit
 
@@ -112,8 +113,54 @@ class HttpServer:
             await self._send(writer, 200, body=scpd_for(self._scpd[path]))
         elif path.startswith("/img/"):
             await self._send(writer, 200, body=_ICON_PNG, content_type="image/png")
+        elif path.startswith("/api/"):
+            await self._api(writer, path)
         else:
             await self._send(writer, 404, body=b"Not Found")
+
+    async def _api(self, writer, path) -> None:
+        """Local Sonos control API (partial).
+
+        After mDNS discovery the app GETs the TXT `info` path
+        (`/api/v1/players/<RINCON>/info`) to bootstrap. We answer it with the
+        player-info JSON a real speaker returns. (The app then tries the
+        cert-pinned wss://:1443 channel, which a software emulator can't
+        satisfy — see README.)
+        """
+        if path.endswith("/info"):
+            body = json.dumps(self._player_info()).encode("utf-8")
+            await self._send(writer, 200, body=body, content_type="application/json")
+        else:
+            await self._send(writer, 200, body=b"{}", content_type="application/json")
+
+    def _player_info(self) -> dict:
+        ctx = self.ctx
+        cfg = ctx.config
+        ident = ctx.identity
+        household = cfg.household or ident.household
+        wss = f"wss://{ctx.ip}:1443/websocket/api"
+        return {
+            "device": {
+                "id": ident.rincon,
+                "primaryDeviceId": ident.rincon,
+                "serialNumber": ident.serial,
+                "model": cfg.model_number,
+                "modelDisplayName": cfg.model_name,
+                "name": ctx.state.room_name,
+                "softwareVersion": cfg.software_version,
+                "hwVersion": "1.20.1.6-1.1",
+                "swGen": 2,
+                "apiVersion": cfg.protovers,
+                "minApiVersion": "1.1.0",
+                "capabilities": ["PLAYBACK", "CLOUD", "LINE_IN", "AUDIO_CLIP"],
+                "websocketUrl": wss,
+            },
+            "householdId": household,
+            "playerId": ident.rincon,
+            "groupId": f"{ident.rincon}:0",
+            "websocketUrl": wss,
+            "restUrl": f"https://{ctx.ip}:1443/api/v1",
+        }
 
     async def _control_request(self, writer, path, headers, body) -> None:
         service = self._control[path]

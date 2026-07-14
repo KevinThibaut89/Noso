@@ -34,6 +34,18 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="audio backend (default auto)",
     )
     parser.add_argument("--audio-sink", dest="audio_sink", help="GStreamer sink override")
+    parser.add_argument(
+        "--no-mdns", dest="mdns_enabled", action="store_const", const=False, default=None,
+        help="disable mDNS advertisement (the modern app needs it to discover Noso)",
+    )
+    parser.add_argument(
+        "--mdns-backend", dest="mdns_backend", choices=["auto", "zeroconf", "avahi", "none"],
+        help="mDNS backend (default auto)",
+    )
+    parser.add_argument(
+        "--household", dest="household",
+        help="household id to advertise (paste your real hhid to look like a member)",
+    )
     parser.add_argument("--icon", dest="icon", help="room icon, e.g. x-rincon-roomicon:living")
     parser.add_argument("--state-dir", dest="state_dir", help="where identity.json is stored")
     parser.add_argument(

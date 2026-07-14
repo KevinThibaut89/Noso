@@ -213,3 +213,53 @@ class GroupManagementService(Service):
             "RemoveMember": lambda a: {},
             "ReportTrackBufferingResult": lambda a: {},
         }
+
+
+# --- services advertised by a real ZonePlayer that Noso only needs to present
+# plausibly (rarely called by the app during discovery). SCPDs are served
+# verbatim from the captured assets; handlers are permissive no-ops.
+
+
+class AudioInService(Service):
+    service_type = "urn:schemas-upnp-org:service:AudioIn:1"
+    service_id = "urn:upnp-org:serviceId:AudioIn"
+    scpd_asset = "AudioIn1.xml"
+    scpd_path = "/xml/AudioIn1.xml"
+    control_path = "/AudioIn/Control"
+    event_path = "/AudioIn/Event"
+    device = "root"
+    permissive = True
+
+    def register(self) -> None:
+        self.handlers = {
+            "GetAudioInputAttributes": lambda a: {"CurrentName": "", "CurrentIcon": ""},
+            "GetLineInLevel": lambda a: {"CurrentLeftLineInLevel": "0", "CurrentRightLineInLevel": "0"},
+        }
+
+
+class QPlayService(Service):
+    service_type = "urn:schemas-tencent-com:service:QPlay:1"
+    service_id = "urn:tencent-com:serviceId:QPlay"
+    scpd_asset = "QPlay1.xml"
+    scpd_path = "/xml/QPlay1.xml"
+    control_path = "/QPlay/Control"
+    event_path = "/QPlay/Event"
+    device = "MR"
+    permissive = True
+
+    def register(self) -> None:
+        self.handlers = {"QPlayAuth": lambda a: {"Code": "", "MID": "", "DID": ""}}
+
+
+class VirtualLineInService(Service):
+    service_type = "urn:schemas-upnp-org:service:VirtualLineIn:1"
+    service_id = "urn:upnp-org:serviceId:VirtualLineIn"
+    scpd_asset = "VirtualLineIn1.xml"
+    scpd_path = "/xml/VirtualLineIn1.xml"
+    control_path = "/MediaRenderer/VirtualLineIn/Control"
+    event_path = "/MediaRenderer/VirtualLineIn/Event"
+    device = "MR"
+    permissive = True
+
+    def register(self) -> None:
+        self.handlers = {}

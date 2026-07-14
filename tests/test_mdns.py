@@ -1,0 +1,27 @@
+from noso.mdns import instance_name, sonos_txt
+from tests.conftest import build_context
+
+
+def test_instance_name_is_sonos_mac():
+    ctx, _ = build_context(1400)
+    # Sonos-<12 hex, uppercase> — the real DNS-SD instance label format.
+    assert instance_name(ctx) == "Sonos-000E58A1B2C3"
+
+
+def test_sonos_txt_records():
+    ctx, _ = build_context(1400)
+    ctx.ip = "192.168.1.9"
+    txt = sonos_txt(ctx)
+    assert txt["info"] == "/api/v1/players/RINCON_000E58A1B2C301400/info"
+    assert txt["hhid"] == "Sonos_testhousehold"
+    assert txt["sslport"] == "1443"
+    assert txt["hhsslport"] == "1843"
+    assert txt["location"] == "http://192.168.1.9:1400/xml/device_description.xml"
+    assert txt["bootseq"] == "1"
+
+
+def test_household_override():
+    ctx, _ = build_context(1400)
+    ctx.config.household = "Sonos_customhh"
+    assert sonos_txt(ctx)["hhid"] == "Sonos_customhh"
+    assert sonos_txt(ctx)["mhhid"] == "Sonos_customhh.0"

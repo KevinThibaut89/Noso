@@ -15,6 +15,10 @@ license = { text = "MIT" }
 dependencies = []
 
 [project.optional-dependencies]
+# mDNS advertisement — REQUIRED for the modern Sonos app to discover Noso.
+# Pure-Python (optional Cython speedups); no system mDNS daemon needed.
+# Strongly recommended: `pip install noso[mdns]`.
+mdns = ["zeroconf>=0.130"]
 # GStreamer backend needs the system PyGObject + gstreamer1.0 plugins.
 # These are system packages (apt), not pip wheels; listed here for reference.
 gstreamer = ["PyGObject>=3.42"]
@@ -22,7 +26,7 @@ gstreamer = ["PyGObject>=3.42"]
 mpv = ["python-mpv>=1.0"]
 # Development / verification harness. `soco` acts as a stand-in Sonos
 # controller so the emulator can be exercised without the real app.
-dev = ["soco>=0.30", "pytest>=7"]
+dev = ["soco>=0.30", "pytest>=7", "zeroconf>=0.130"]
 
 [project.scripts]
 noso = "noso.__main__:main"
