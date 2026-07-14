@@ -154,6 +154,20 @@ sudo mkdir -p /etc/noso && sudo cp noso.example.toml /etc/noso/noso.toml
 sudo systemctl enable --now noso
 ```
 
+## Run in a Proxmox LXC container
+
+A one-command provisioner is included: on the Proxmox host,
+
+```bash
+git clone https://github.com/KevinThibaut89/Noso.git && cd Noso
+bash lxc/create-noso-lxc.sh --room "Kitchen"          # add --audio for host sound-card output
+```
+
+It creates a Debian 12 container on your LAN bridge (SSDP multicast works out
+of the box, unlike a default Docker bridge), installs Noso + GStreamer, and
+enables the service. See [`lxc/README.md`](lxc/README.md) for options, audio
+setups, and updating.
+
 ## Limitations
 
 - Not accepted by the modern app's setup flow (device-certificate wall).
