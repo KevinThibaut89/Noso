@@ -66,5 +66,12 @@ def server():
 
     yield f"http://127.0.0.1:{port}", ctx
 
+    # Cancel the GENA sweeper on the loop thread before stopping it, so no
+    # pending task is left dangling.
+    future = asyncio.run_coroutine_threadsafe(ctx.gena.stop(), loop)
+    try:
+        future.result(2)
+    except Exception:  # noqa: BLE001
+        pass
     loop.call_soon_threadsafe(loop.stop)
     thread.join(2)
