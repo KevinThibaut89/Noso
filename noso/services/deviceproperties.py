@@ -49,12 +49,12 @@ class DevicePropertiesService(Service):
         return {
             "SerialNumber": ident.serial,
             "SoftwareVersion": cfg.software_version,
-            "DisplaySoftwareVersion": cfg.software_version.split("-")[0],
-            "HardwareVersion": "1.20.1.6-1.1",
+            "DisplaySoftwareVersion": cfg.display_version,
+            "HardwareVersion": cfg.hardware_version,
             "IPAddress": self.ctx.ip,
             "MACAddress": ident.mac,
             "CopyrightInfo": "© 2004-2024 Sonos, Inc. All Rights Reserved.",
-            "ExtraInfo": "",
+            "ExtraInfo": cfg.extra_version,
             "HTAudioIn": "0",
             "Flags": "0",
         }

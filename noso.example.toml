@@ -18,6 +18,20 @@ hardware_version = "1.17.5.5-2.0"
 min_compatible_version = "85.0-00000"
 legacy_compatible_version = "58.0-00000"
 
+# Modern-app identity. The Sonos app reads model / Series ID / S1-vs-S2 from
+# these LOCAL device_description fields (no cloud lookup):
+#   series_id     sets the "Series ID" (C100 = Connect family)
+#   api_version   (with the <versions> block Noso emits) flips the device S1 -> S2
+#   extra_version is the "OTP: ..." string GetZoneInfo returns
+# Capture your own from a real unit for an exact match:
+#   curl -s http://<speaker-ip>:1400/xml/device_description.xml
+series_id = "C100"
+api_version = "1.52.0"
+min_api_version = "1.1.0"
+extra_version = "OTP: 1.1.1(1-17-5-zp90-2.1)"
+variant = "0"
+zone_type = "1"
+
 # Room icon (any Sonos x-rincon-roomicon:* value).
 icon = "x-rincon-roomicon:living"
 
