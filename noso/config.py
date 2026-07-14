@@ -20,6 +20,8 @@ except ModuleNotFoundError:  # pragma: no cover - older interpreters
 
 _INT_FIELDS = {"http_port", "ssdp_port", "ssdp_ttl", "announce_interval"}
 _PATH_FIELDS = {"state_dir"}
+_BOOL_FIELDS = {"mdns_enabled"}
+_TRUE = {"1", "true", "yes", "on"}
 
 
 def _default_state_dir() -> Path:
@@ -53,6 +55,16 @@ class Config:
 
     audio_backend: str = "auto"  # auto | gstreamer | mpv | ffmpeg | null
     audio_sink: Optional[str] = None  # GStreamer sink override, e.g. "alsasink"
+
+    # mDNS/Bonjour advertisement — REQUIRED for the modern Sonos app to discover
+    # the device (it dropped SSDP for local discovery). Advertises _sonos._tcp.
+    mdns_enabled: bool = True
+    mdns_backend: str = "auto"  # auto | zeroconf | avahi | none
+    # Household id to advertise (mDNS `hhid`, ZoneGroupState, /info). Set this to
+    # your real household's id to look like a member of the existing household;
+    # otherwise a stable generated one is used.
+    household: Optional[str] = None
+    protovers: str = "1.29.2"  # advertised Sonos protocol version (mDNS `protovers`)
 
     state_dir: Path = field(default_factory=_default_state_dir)
     log_level: str = "INFO"
@@ -114,6 +126,8 @@ def _coerce(values: dict[str, Any]) -> dict[str, Any]:
             out[key] = None
         elif key in _INT_FIELDS:
             out[key] = int(value)
+        elif key in _BOOL_FIELDS:
+            out[key] = value if isinstance(value, bool) else str(value).lower() in _TRUE
         elif key in _PATH_FIELDS:
             out[key] = Path(value).expanduser()
         else:

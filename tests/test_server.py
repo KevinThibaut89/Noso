@@ -87,6 +87,21 @@ def test_invalid_action_returns_fault(server):
     assert code == "401"
 
 
+def test_player_info_endpoint(server):
+    """The mDNS TXT `info` path the modern app fetches after discovery."""
+    base, ctx = server
+    rincon = ctx.identity.rincon
+    status, _, body = _request(base, "GET", f"/api/v1/players/{rincon}/info")
+    assert status == 200
+    import json
+
+    data = json.loads(body)
+    assert data["playerId"] == rincon
+    assert data["householdId"]
+    assert data["websocketUrl"].startswith("wss://")
+    assert data["device"]["name"] == "Test Room"
+
+
 def test_subscribe_returns_sid(server):
     base, _ = server
     status, headers, _ = _request(

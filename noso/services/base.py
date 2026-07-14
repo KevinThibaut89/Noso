@@ -27,6 +27,10 @@ class Service:
     # action name -> (in_arg_names, out_arg_names); drives generated SCPD so
     # controllers can discover each action's arguments.
     ACTIONS: dict[str, tuple[list[str], list[str]]] = {}
+    # When True, actions with no registered handler return an empty success
+    # instead of a 401 fault. Used for advertised-but-rarely-called services
+    # (AudioIn/QPlay/VirtualLineIn) so a probing app never sees an error.
+    permissive: bool = False
 
     def __init__(self, ctx: ServerContext) -> None:
         self.ctx = ctx
@@ -39,6 +43,8 @@ class Service:
     def handle(self, action: str, args: dict) -> dict:
         fn = self.handlers.get(action)
         if fn is None:
+            if self.permissive:
+                return {}
             raise UPnPError(401, f"Invalid Action: {action}")
         return fn(args) or {}
 

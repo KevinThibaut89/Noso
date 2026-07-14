@@ -45,12 +45,28 @@ for url in urls:
     print(f"    saved {os.path.join(out, name)}  ({len(data)} bytes)")
 PY
 
+echo "==> Capturing the real speaker's mDNS advertisement (fidelity for _sonos._tcp)"
+if command -v avahi-browse >/dev/null 2>&1; then
+  # -p parseable, -r resolve, -t terminate when cache exhausted.
+  avahi-browse -p -r -t _sonos._tcp 2>/dev/null | tee "${REF_DIR}/mdns_sonos.txt" >/dev/null || true
+  echo "    saved ${REF_DIR}/mdns_sonos.txt  (copy the txt=[...] key=value pairs into your config/hhid)"
+  echo "    your household id (hhid) is the value to pass to Noso via --household:"
+  grep -o 'hhid=[^"]*' "${REF_DIR}/mdns_sonos.txt" | head -1 || true
+else
+  echo "    avahi-browse not found (install avahi-utils). To see the raw mDNS on the wire:"
+  echo "      sudo tcpdump -n -s0 -A -i <iface> udp port 5353"
+fi
+
 cat <<EOF
 
 ==> Done.
 Restart Noso; any SCPD whose filename matches a service's scpd_asset is now
-served verbatim instead of the generated fallback.
+served verbatim instead of the generated fallback. Pass your real household id
+with --household so Noso's mDNS looks like a member of your household.
 
-To capture live discovery/control traffic for a byte-level diff against Noso:
-  sudo tcpdump -i <iface> -n -A 'port 1900 or port 1400'
+To watch what the app actually does when it (fails to) find Noso:
+  sudo tcpdump -i <iface> -n -A 'port 5353 or port 1900 or port 1400 or port 1443'
+Key signal: after the mDNS hit, does the app HTTP-GET Noso's
+:1400/xml/device_description.xml and /api/v1/players/<RINCON>/info (legacy path
+open) or only attempt a TLS handshake on :1443 (the certificate wall)?
 EOF

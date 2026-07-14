@@ -18,7 +18,14 @@ different in how open they are:
 | Plane | Discovery | Control | Device auth | Noso? |
 |---|---|---|---|---|
 | **Legacy UPnP** | SSDP (UDP 1900) | SOAP + GENA (TCP 1400) | **none** | ✅ **emulated** |
-| **Modern** (2024+ app) | mDNS + cloud household | TLS WebSocket (1443) | Sonos-signed X.509 device cert + secure registration | ❌ not possible in software |
+| **Modern** (2024+ app) | mDNS `_sonos._tcp` + cloud household | TLS WebSocket (1443) | Sonos-signed X.509 device cert + secure registration | ⚠️ **discovery emulated** (mDNS + `/info`); onboarding blocked by the device certificate |
+
+Noso advertises `_sonos._tcp` over mDNS (with a faithful TXT record and the
+`/api/v1/players/<RINCON>/info` bootstrap endpoint), so a current app can
+*discover* it. What it cannot forge is the factory device certificate the app
+requires to open the cert-pinned `wss://<ip>:1443` control channel — so the app
+will likely detect Noso and then drop it as unverified. The **diagnose-first**
+steps below let you see exactly where your app stops.
 
 Noso emulates the **legacy UPnP plane**. That plane has no device
 authentication — topology is self-reported over plain HTTP — which is exactly
@@ -49,8 +56,13 @@ Requires **Python 3.11+**. The core needs no pip packages.
 ```bash
 git clone https://github.com/KevinThibaut89/Noso.git
 cd Noso
-pip install -e .          # installs the `noso` command (no runtime deps)
+pip install -e '.[mdns]'   # installs the `noso` command + python-zeroconf
 ```
+
+> **Install the `mdns` extra.** The modern Sonos app discovers speakers over
+> **mDNS**, not SSDP. Without `python-zeroconf` (or a system `avahi-publish`),
+> Noso is invisible to a current app — it will still work with SoCo / Home
+> Assistant, which use SSDP. `pip install -e .` (no extra) skips mDNS.
 
 For real audio output, install one backend (any one is enough):
 
@@ -104,26 +116,38 @@ zp.play_uri("http://example.com/test.mp3")
 print(zp.get_current_transport_info()["current_transport_state"])  # PLAYING
 ```
 
-## Getting it into the Sonos app
+## Getting it into the Sonos app (diagnose first)
 
-Because the modern "Add Product" flow is gated by the device certificate,
-target an environment where the **legacy UPnP path** is live:
+Noso now emits the mDNS the modern app needs, but the app may still refuse it
+at the certificate step. Rather than guess, **observe what your app does** —
+these steps also capture the exact records to mimic. Run them on the same L2
+network as a real speaker (no VLAN hop, multicast allowed).
 
-1. In the Sonos app: **Settings → System → Network → check for a UPnP / "local
-   control" toggle** and ensure it's on (older/S1 systems and some S2 builds).
-2. Put Noso on the **same L2 network** as your existing speakers (no VLAN
-   hop, multicast allowed).
-3. **Capture your real speaker for fidelity** — the biggest lever you have:
+1. **Capture your real speaker** (highest-leverage move):
    ```bash
    tools/capture_real_speaker.sh <your-speaker-ip> noso/assets/scpd
    ```
-   This downloads that speaker's exact SCPDs so Noso serves them verbatim, and
-   saves a `device_description.real.xml` to diff against. Set `--model` /
-   `--model-number` to match, too.
-4. The decisive early signal: run `tcpdump -n -A 'port 1400 or port 1900'` and
-   watch whether the app ever HTTP-GETs Noso's `:1400/xml/device_description.xml`.
-   If it never touches `:1400`, the app is mDNS-only and no amount of polish
-   will surface Noso — and that's your definitive answer.
+   Downloads its exact SCPDs (served verbatim), its `device_description.xml`,
+   and — if `avahi-utils` is installed — its `_sonos._tcp` mDNS record incl.
+   your **household id (`hhid`)**.
+2. **Advertise as a household member.** Start Noso with your real hhid and a
+   matching model:
+   ```bash
+   noso --room "Studio" --household "Sonos_<your-hhid>" --model "Sonos One" --model-number S13
+   ```
+3. **Confirm Noso is discoverable:** from another machine,
+   `avahi-browse -r -t _sonos._tcp` must list Noso next to your real speakers.
+4. **Watch the app** while opening it:
+   ```bash
+   sudo tcpdump -n -A 'port 5353 or port 1400 or port 1443'
+   ```
+   - App HTTP-GETs Noso's `:1400/xml/device_description.xml` **or**
+     `/api/v1/players/<RINCON>/info` → the legacy path is open, promising.
+   - App only attempts a **TLS handshake on `:1443`** then drops Noso → you've
+     hit the device-certificate wall, which no amount of legacy fidelity fixes.
+
+That step-4 observation is the definitive go/no-go. If it's the `:1443` wall,
+control Noso via SoCo / Home Assistant instead (fully working today).
 
 ## How it works
 
