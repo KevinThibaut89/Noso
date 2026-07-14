@@ -40,12 +40,12 @@ class Config:
     # Defaults mimic a current-firmware Sonos Connect (ZP90) — a line-out network
     # receiver, which is what Noso is. The version fields MUST be S2-current or
     # the app classifies the device as S1 and demands a system update. Values
-    # captured from a real S2 household (app 17.2.5). Override to match a model
+    # captured from a real S2 household (app 17.2.6). Override to match a model
     # you actually own for the best chance of the app accepting it.
     model_name: str = "Sonos Connect"
     model_number: str = "ZP90"
-    software_version: str = "86.7-77050"
-    display_version: str = "17.2.5"  # marketing version the app shows
+    software_version: str = "86.8-78270"
+    display_version: str = "17.2.6"  # marketing version the app shows
     hardware_version: str = "1.17.5.5-2.0"
     min_compatible_version: str = "85.0-00000"
     legacy_compatible_version: str = "58.0-00000"
@@ -58,7 +58,7 @@ class Config:
     # Recapture from a unit you own for an exact match:
     #   curl -s http://<speaker-ip>:1400/xml/device_description.xml
     series_id: str = "C100"
-    api_version: str = "1.52.0"
+    api_version: str = "1.53.1"
     min_api_version: str = "1.1.0"
     extra_version: str = "OTP: 1.1.1(1-17-5-zp90-2.1)"
     variant: str = "0"
