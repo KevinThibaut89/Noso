@@ -37,6 +37,22 @@ def test_device_description(server):
     assert len(dev.find(f"{ns}deviceList").findall(f"{ns}device")) == 2
 
 
+def test_device_description_version_fields(server):
+    """S2 version fields must flow through (else the app flags the device S1),
+    and the old cosmetic double-"Sonos" must be gone.
+    """
+    base, ctx = server
+    _, _, body = _request(base, "GET", "/xml/device_description.xml")
+    ns = "{urn:schemas-upnp-org:device-1-0}"
+    dev = ET.fromstring(body).find(f"{ns}device")
+    assert dev.findtext(f"{ns}softwareVersion") == ctx.config.software_version
+    assert dev.findtext(f"{ns}displayVersion") == ctx.config.display_version
+    assert dev.findtext(f"{ns}minCompatibleVersion") == ctx.config.min_compatible_version
+    assert dev.findtext(f"{ns}hardwareVersion") == ctx.config.hardware_version
+    assert dev.findtext(f"{ns}swGen") == "2"
+    assert b"Sonos Sonos" not in body  # no double-brand in modelDescription
+
+
 def test_scpd_served(server):
     base, _ = server
     status, _, body = _request(base, "GET", "/xml/AVTransport1.xml")

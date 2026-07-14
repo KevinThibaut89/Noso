@@ -5,12 +5,18 @@
 # Name shown as the room/zone in the Sonos app and other controllers.
 room_name = "Noso"
 
-# Identity presented to controllers. To maximise the chance the app accepts the
-# emulator, set these to a model you actually own and capture that speaker's
-# SCPDs with tools/capture_real_speaker.sh.
-model_name = "Sonos PLAY:3"
-model_number = "S3"
-software_version = "56.0-76060"
+# Identity presented to controllers + the app. Defaults mimic a current-S2
+# Sonos Connect. The *version* fields must be S2-current or the app flags the
+# device "Sonos OS: S1" and demands a system update. To blend into your own
+# household, set model_* and the version fields to values captured from a real
+# speaker:  curl -s http://<speaker-ip>:1400/xml/device_description.xml
+model_name = "Sonos Connect"
+model_number = "ZP90"
+software_version = "86.7-77050"
+display_version = "17.2.5"
+hardware_version = "1.17.5.5-2.0"
+min_compatible_version = "85.0-00000"
+legacy_compatible_version = "58.0-00000"
 
 # Room icon (any Sonos x-rincon-roomicon:* value).
 icon = "x-rincon-roomicon:living"
