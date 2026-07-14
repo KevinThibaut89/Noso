@@ -1,0 +1,26 @@
+# Noso configuration. Copy to /etc/noso/noso.toml (or anywhere) and pass with
+# `noso --config <path>`. Every value is optional; CLI flags and NOSO_* env
+# vars override the file. A [noso] table is also accepted.
+
+# Name shown as the room/zone in the Sonos app and other controllers.
+room_name = "Noso"
+
+# Identity presented to controllers. To maximise the chance the app accepts the
+# emulator, set these to a model you actually own and capture that speaker's
+# SCPDs with tools/capture_real_speaker.sh.
+model_name = "Sonos PLAY:3"
+model_number = "S3"
+software_version = "56.0-76060"
+
+# Room icon (any Sonos x-rincon-roomicon:* value).
+icon = "x-rincon-roomicon:living"
+
+# LAN IP to advertise. Leave unset to autodetect the primary interface.
+# interface_ip = "192.168.1.50"
+
+# Audio backend: auto (gstreamer -> mpv -> ffmpeg -> null), or force one.
+audio_backend = "auto"
+# GStreamer sink override, e.g. a specific ALSA device:
+# audio_sink = "alsasink device=hw:0"
+
+log_level = "INFO"

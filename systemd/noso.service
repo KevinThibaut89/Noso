@@ -1,0 +1,22 @@
+[Unit]
+Description=Noso - Sonos ZonePlayer emulator
+Documentation=https://github.com/KevinThibaut89/Noso
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adjust the path if installed in a virtualenv. --config is optional.
+ExecStart=/usr/bin/python3 -m noso --config /etc/noso/noso.toml
+Restart=on-failure
+RestartSec=5
+
+# Discovery relies on SSDP multicast on the host LAN, so the service must NOT be
+# network-namespaced/sandboxed. Ports 1400/1900 are unprivileged.
+# Run as a dedicated user that is in the 'audio' group for ALSA/PulseAudio.
+User=noso
+Group=audio
+StateDirectory=noso
+
+[Install]
+WantedBy=multi-user.target
