@@ -109,15 +109,14 @@ pct exec <ctid> -- systemctl restart noso     # after editing /etc/noso/noso.tom
 pct enter <ctid>                              # shell inside the container
 ```
 
-**Updating Noso** — from a fresh checkout on the Proxmox host:
+**Updating Noso** — pull the latest code and run the update script; it finds
+the container by its `noso` tag (or pass the CT id), replaces `/opt/noso`,
+reinstalls, and restarts the service. Your `/etc/noso/noso.toml` and the
+persisted speaker identity are kept.
 
 ```bash
 cd Noso && git pull
-tar -C . -czf /tmp/noso-src.tar.gz --exclude=.git .
-pct push <ctid> /tmp/noso-src.tar.gz /tmp/noso-src.tar.gz
-pct exec <ctid> -- bash -c 'tar -C /opt/noso -xzf /tmp/noso-src.tar.gz \
-    && pip install -q --break-system-packages -e /opt/noso \
-    && systemctl restart noso'
+bash lxc/update-noso-lxc.sh          # or: bash lxc/update-noso-lxc.sh <ctid>
 ```
 
 **Turning the CT into a reusable template** — once it's set up the way you

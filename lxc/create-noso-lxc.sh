@@ -408,9 +408,13 @@ run "Installing Debian packages + Noso (the slow part)" \
             gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav \
             gir1.2-gstreamer-1.0 gstreamer1.0-alsa alsa-utils ca-certificates
-        # --no-build-isolation: build with the system setuptools so the install
-        # needs no PyPI access (noso itself has zero pip dependencies).
-        pip install --quiet --break-system-packages --no-build-isolation -e /opt/noso
+        # --no-build-isolation: build with the system setuptools. The [mdns]
+        # extra (zeroconf, from PyPI) is REQUIRED for the modern Sonos app to
+        # discover Noso; fall back to a core install if PyPI is unreachable.
+        if ! pip install --quiet --break-system-packages --no-build-isolation -e '/opt/noso[mdns]'; then
+            echo 'WARNING: [mdns] extra failed (no PyPI access?) — installing without mDNS; the modern Sonos app will not see this speaker' >&2
+            pip install --quiet --break-system-packages --no-build-isolation -e /opt/noso
+        fi
     "
 
 ROOM_SED="${ROOM//\//\\/}"; ROOM_SED="${ROOM_SED//&/\\&}"
