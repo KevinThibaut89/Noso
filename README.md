@@ -21,11 +21,18 @@ different in how open they are:
 | **Modern** (2024+ app) | mDNS `_sonos._tcp` + cloud household | TLS WebSocket (1443) | Sonos-signed X.509 device cert + secure registration | ⚠️ **discovery emulated** (mDNS + `/info`); onboarding blocked by the device certificate |
 
 Noso advertises `_sonos._tcp` over mDNS (with a faithful TXT record and the
-`/api/v1/players/<RINCON>/info` bootstrap endpoint), so a current app can
-*discover* it. What it cannot forge is the factory device certificate the app
-requires to open the cert-pinned `wss://<ip>:1443` control channel — so the app
-will likely detect Noso and then drop it as unverified. The **diagnose-first**
-steps below let you see exactly where your app stops.
+`/api/v1/players/<RINCON>/info` bootstrap endpoint) **and** serves a full,
+real-looking `device_description.xml`. With those in place a current app
+discovers Noso and **lists it as a genuine S2 device** — the app derives the
+model, Series ID, and S1-vs-S2 generation entirely from *local*
+`device_description` fields (`seriesid`, `apiVersion` + the `<versions>` block,
+`softwareVersion`, …), all configurable and captured from a real Connect. Where
+it stops is one step later: the app gates *use* on **cloud account
+registration**, which binds a device to your account through its factory
+Sonos-signed X.509 certificate. A self-built speaker has no such certificate, so
+the app shows Noso as "not registered / update required" and won't play to it.
+That certificate is the one piece that cannot be reproduced in software. The
+**diagnose-first** steps below let you see exactly where your app stops.
 
 Noso emulates the **legacy UPnP plane**. That plane has no device
 authentication — topology is self-reported over plain HTTP — which is exactly
@@ -36,13 +43,14 @@ why it can be emulated.
 Sonos integration — discovers Noso, lists it as a room, and drives playback,
 volume, mute, grouping metadata, room renaming, and live events.
 
-**The honest caveat about the official app:** the app Sonos shipped in May 2024
-discovers over mDNS and, to *add* a product, requires a factory-provisioned,
-Sonos-signed device certificate that lives behind the speaker's secure boot.
-That cannot be reproduced in software, so a self-built speaker **cannot be
-onboarded through "Add Product" in the current app.** Whether an *older* app
-build (or an already-established household with UPnP enabled) surfaces a
-legacy zone is firmware/app-version dependent and unproven — see
+**The honest caveat about the official app:** a current app *will* discover Noso
+and list it next to your real speakers (desktop **and** mobile), classified as a
+genuine S2 device. But it then runs account onboarding — "Linking your … to your
+account" — and gates playback on **secure cloud registration**, which requires
+the factory-provisioned, Sonos-signed device certificate that lives behind the
+speaker's secure boot. That cannot be reproduced in software, so a self-built
+speaker **cannot be registered or used through the current app**, even though it
+now appears in it — see
 [Getting it into the Sonos app](#getting-it-into-the-sonos-app). If your goal is
 "reliably stream audio to this Linux box", the SoCo/Home-Assistant path is the
 one to count on.
@@ -137,17 +145,20 @@ network as a real speaker (no VLAN hop, multicast allowed).
    ```
 3. **Confirm Noso is discoverable:** from another machine,
    `avahi-browse -r -t _sonos._tcp` must list Noso next to your real speakers.
-4. **Watch the app** while opening it:
+4. **Watch the app** while opening it and tapping into the Noso room:
    ```bash
    sudo tcpdump -n -A 'port 5353 or port 1400 or port 1443'
    ```
-   - App HTTP-GETs Noso's `:1400/xml/device_description.xml` **or**
-     `/api/v1/players/<RINCON>/info` → the legacy path is open, promising.
-   - App only attempts a **TLS handshake on `:1443`** then drops Noso → you've
-     hit the device-certificate wall, which no amount of legacy fidelity fixes.
+   - App HTTP-GETs Noso's `:1400/xml/device_description.xml` and issues SOAP on
+     `:1400` (e.g. `GetZoneInfo`) → the legacy path is open. This is what a
+     current app does: it lists the zone and drives it over `:1400`.
+   - App then runs onboarding ("not registered" / "update required") and reaches
+     for `wss://:1443` → the **cloud account-registration** wall, which needs the
+     factory device certificate and no legacy fidelity can fix.
 
-That step-4 observation is the definitive go/no-go. If it's the `:1443` wall,
-control Noso via SoCo / Home Assistant instead (fully working today).
+That step-4 observation is the definitive go/no-go. In practice a current app
+lists Noso but blocks it at registration, so control Noso via SoCo / Home
+Assistant instead (fully working today).
 
 ## How it works
 
@@ -194,7 +205,9 @@ setups, and updating.
 
 ## Limitations
 
-- Not accepted by the modern app's setup flow (device-certificate wall).
+- Appears in the modern app as a genuine S2 device, but can't be registered or
+  used through it — the cloud account-registration step needs the factory device
+  certificate (control it via SoCo / Home Assistant instead).
 - Single standalone zone: no real multi-room grouping/stereo-pair (grouping
   actions are accepted as no-ops so controllers don't error).
 - Not affiliated with or endorsed by Sonos, Inc. "Sonos" is used only to

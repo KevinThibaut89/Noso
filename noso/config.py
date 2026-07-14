@@ -49,6 +49,20 @@ class Config:
     hardware_version: str = "1.17.5.5-2.0"
     min_compatible_version: str = "85.0-00000"
     legacy_compatible_version: str = "58.0-00000"
+    # Modern-app identity fields, all captured from a real S2 Connect. The Sonos
+    # app derives model/Series-ID/OS-generation from these *local* fields:
+    #   series_id     -> Series ID shown in the app ("C100" = Connect family)
+    #   api_version   -> flips the device S1 -> S2 (with the <versions> block in
+    #                    device.py); mirrored into GetZoneInfo + /info
+    #   extra_version -> the "OTP: ..." string GetZoneInfo/ExtraInfo returns
+    # Recapture from a unit you own for an exact match:
+    #   curl -s http://<speaker-ip>:1400/xml/device_description.xml
+    series_id: str = "C100"
+    api_version: str = "1.52.0"
+    min_api_version: str = "1.1.0"
+    extra_version: str = "OTP: 1.1.1(1-17-5-zp90-2.1)"
+    variant: str = "0"
+    zone_type: str = "1"  # real Connect reports 1 (a line-out ZonePlayer)
     icon: str = "x-rincon-roomicon:living"
 
     interface_ip: Optional[str] = None  # LAN IP to advertise (autodetect if None)

@@ -50,7 +50,32 @@ def test_device_description_version_fields(server):
     assert dev.findtext(f"{ns}minCompatibleVersion") == ctx.config.min_compatible_version
     assert dev.findtext(f"{ns}hardwareVersion") == ctx.config.hardware_version
     assert dev.findtext(f"{ns}swGen") == "2"
+    # Modern-app identity fields: seriesid -> "Series ID", apiVersion -> S2.
+    assert dev.findtext(f"{ns}seriesid") == ctx.config.series_id
+    assert dev.findtext(f"{ns}apiVersion") == ctx.config.api_version
+    assert dev.findtext(f"{ns}minApiVersion") == ctx.config.min_api_version
+    assert dev.findtext(f"{ns}zoneType") == ctx.config.zone_type
+    # The <versions> block that pairs with apiVersion to flip S1 -> S2.
+    assert dev.find(f"{ns}versions/{ns}controlAPI/{ns}version").text == ctx.config.api_version
     assert b"Sonos Sonos" not in body  # no double-brand in modelDescription
+
+
+def test_get_zone_info_uses_config(server):
+    """GetZoneInfo must report the *configured* hardware/display/extra versions,
+    not stale hardcoded values (regression guard for the old 1.20.1.6-1.1 leak).
+    """
+    base, ctx = server
+    dp = "urn:schemas-upnp-org:service:DeviceProperties:1"
+    status, _, body = _request(
+        base, "POST", "/DeviceProperties/Control",
+        {"SOAPACTION": f'"{dp}#GetZoneInfo"'},
+        _soap(dp, "GetZoneInfo"),
+    )
+    assert status == 200
+    env = ET.fromstring(body)
+    assert env.find(".//HardwareVersion").text == ctx.config.hardware_version
+    assert env.find(".//DisplaySoftwareVersion").text == ctx.config.display_version
+    assert env.find(".//ExtraInfo").text == ctx.config.extra_version
 
 
 def test_scpd_served(server):

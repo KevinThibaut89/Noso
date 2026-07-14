@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from .config import Config
 from .context import ServerContext
 from .services.base import Service
 from .xmlutil import xml_escape as esc
@@ -41,6 +42,58 @@ def _icon_list(model_number: str) -> str:
         "<width>48</width><height>48</height><depth>24</depth>"
         f"<url>/img/icon-{esc(model_number)}.png</url>"
         "</icon></iconList>"
+    )
+
+
+# Product descriptors captured from a real S2 Sonos Connect (ZP90). On their own
+# these aren't the S1/S2 verdict — apiVersion + the <versions> block are what
+# flip the app to S2 — but a genuine speaker emits them and app builds read some
+# (seriesid -> "Series ID", extraVersion -> the "OTP:" string). Fields that vary
+# by model live in Config; these constants don't. Recapture your own unit with:
+#   curl -s http://<speaker-ip>:1400/xml/device_description.xml
+_NS_VERSION = "42"
+_INTERNAL_SPEAKER_SIZE = "-1"  # a Connect has no built-in speaker
+_MEMORY = "64"
+_FLASH = "64"
+_FEATURES = ("0x00310001", "0x00006172", "0x000b3021", "0x00000000")
+_SSL_PORT = "1443"
+_SECURE_HH_SSL_PORT = "1843"
+_AUDIO_TX_VERSION = "3"
+_HT_AUDIO_TX_VERSION = "7"
+_TRUEPLAY_SDK_VERSION = "6"
+
+
+def _modern_identity_block(cfg: Config) -> str:
+    """The modern-app identity fields a real S2 speaker advertises, emitted right
+    after ``<zoneType>``. The Sonos app reads model/Series-ID/OS-generation from
+    these; without them it classifies the device as a legacy S1 unit and demands
+    a system update it can never pass.
+    """
+    features = "".join(
+        f"<feature{i}>{f}</feature{i}>" for i, f in enumerate(_FEATURES, start=1)
+    )
+    versions = (
+        "<versions>"
+        f"<audioTxProtocol><version>{_AUDIO_TX_VERSION}</version></audioTxProtocol>"
+        f"<htAudioTxProtocol><version>{_HT_AUDIO_TX_VERSION}</version></htAudioTxProtocol>"
+        f"<controlAPI><version>{esc(cfg.api_version)}</version></controlAPI>"
+        f"<trueplaySDK><version>{_TRUEPLAY_SDK_VERSION}</version></trueplaySDK>"
+        "</versions>"
+    )
+    return (
+        f"<seriesid>{esc(cfg.series_id)}</seriesid>"
+        f"<variant>{esc(cfg.variant)}</variant>"
+        f"<internalSpeakerSize>{_INTERNAL_SPEAKER_SIZE}</internalSpeakerSize>"
+        f"<memory>{_MEMORY}</memory>"
+        f"<flash>{_FLASH}</flash>"
+        f"<apiVersion>{esc(cfg.api_version)}</apiVersion>"
+        f"<minApiVersion>{esc(cfg.min_api_version)}</minApiVersion>"
+        f"<extraVersion>{esc(cfg.extra_version)}</extraVersion>"
+        f"<nsVersion>{_NS_VERSION}</nsVersion>"
+        f"{features}"
+        f"<SSLPort>{_SSL_PORT}</SSLPort>"
+        f"<securehhSSLPort>{_SECURE_HH_SSL_PORT}</securehhSSLPort>"
+        f"{versions}"
     )
 
 
@@ -110,7 +163,8 @@ def render_device_description(ctx: ServerContext, services: list[Service]) -> st
         f"<displayVersion>{esc(cfg.display_version)}</displayVersion>"
         f"<roomName>{esc(ctx.state.room_name)}</roomName>"
         f"<displayName>{esc(display_name)}</displayName>"
-        "<zoneType>9</zoneType>"
+        f"<zoneType>{esc(cfg.zone_type)}</zoneType>"
+        f"{_modern_identity_block(cfg)}"
         f"{_service_list(root_services)}"
         f"<deviceList>{media_server}{media_renderer}</deviceList>"
         "</device>"
