@@ -78,6 +78,23 @@ def test_get_zone_info_uses_config(server):
     assert env.find(".//ExtraInfo").text == ctx.config.extra_version
 
 
+def test_begin_software_update_accepted(server):
+    """The app fires BeginSoftwareUpdate when onboarding a zone it thinks needs
+    updating; faulting it (no handler -> 401) makes the app immediately declare
+    the device unresponsive. It must return a success response, not a fault.
+    """
+    base, _ = server
+    status, _, body = _request(
+        base, "POST", "/ZoneGroupTopology/Control",
+        {"SOAPACTION": f'"{ZGT}#BeginSoftwareUpdate"'},
+        _soap(ZGT, "BeginSoftwareUpdate",
+              "<UpdateURL>http://ex/f.upd</UpdateURL><Flags>0</Flags><ExtraOptions></ExtraOptions>"),
+    )
+    assert status == 200
+    assert b"BeginSoftwareUpdateResponse" in body
+    assert b"Fault" not in body
+
+
 def test_scpd_served(server):
     base, _ = server
     status, _, body = _request(base, "GET", "/xml/AVTransport1.xml")

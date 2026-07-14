@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import logging
+
 from ..zonegroup import build_zone_group_state
 from .base import Service
+
+log = logging.getLogger("noso.zgt")
 
 
 class ZoneGroupTopologyService(Service):
@@ -29,6 +33,7 @@ class ZoneGroupTopologyService(Service):
         "RegisterMobileDevice": (["MobileDeviceName", "MobileDeviceUDN", "MobileIPAndPort"], []),
         "ReportUnresponsiveDevice": (["DeviceUUID", "DesiredAction"], []),
         "CheckForUpdate": (["UpdateType", "CachedOnly", "Version"], ["UpdateItem"]),
+        "BeginSoftwareUpdate": (["UpdateURL", "Flags", "ExtraOptions"], []),
     }
 
     def register(self) -> None:
@@ -39,6 +44,7 @@ class ZoneGroupTopologyService(Service):
             "RegisterMobileDevice": lambda a: {},
             "ReportUnresponsiveDevice": lambda a: {},
             "CheckForUpdate": lambda a: {"UpdateItem": ""},
+            "BeginSoftwareUpdate": self._begin_software_update,
         }
 
     def _get_state(self, args: dict) -> dict:
@@ -52,6 +58,21 @@ class ZoneGroupTopologyService(Service):
             "CurrentZonePlayerUUIDsInGroup": ident.rincon,
             "CurrentMuseHouseholdId": ident.household,
         }
+
+    def _begin_software_update(self, args: dict) -> dict:
+        """The app fires this to update a zone it believes is out of date — part
+        of onboarding a device it doesn't yet recognise. A real speaker fetches
+        firmware from ``UpdateURL``, reboots, and returns on the household's
+        version; Noso already advertises that version, so it accepts the request
+        and reports success. Faulting here (the old no-handler -> 401 path) is
+        exactly what made the app immediately call ReportUnresponsiveDevice and
+        drop the zone as dead.
+        """
+        log.info(
+            "BeginSoftwareUpdate(URL=%r, Flags=%r) -> accepted (already current)",
+            args.get("UpdateURL", ""), args.get("Flags", ""),
+        )
+        return {}
 
     def event_state(self) -> dict[str, str]:
         # ZoneGroupTopology events the whole ZoneGroupState document.

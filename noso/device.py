@@ -55,6 +55,9 @@ _NS_VERSION = "42"
 _INTERNAL_SPEAKER_SIZE = "-1"  # a Connect has no built-in speaker
 _MEMORY = "64"
 _FLASH = "64"
+_FLASH_REPARTITIONED = "0"
+_AMP_ON_TIME = "1"
+_RETAIL_MODE = "0"
 _FEATURES = ("0x00310001", "0x00006172", "0x000b3021", "0x00000000")
 _SSL_PORT = "1443"
 _SECURE_HH_SSL_PORT = "1843"
@@ -80,20 +83,24 @@ def _modern_identity_block(cfg: Config) -> str:
         f"<trueplaySDK><version>{_TRUEPLAY_SDK_VERSION}</version></trueplaySDK>"
         "</versions>"
     )
+    # Field order mirrors a real S2 Connect's live device_description.xml.
     return (
         f"<seriesid>{esc(cfg.series_id)}</seriesid>"
-        f"<variant>{esc(cfg.variant)}</variant>"
-        f"<internalSpeakerSize>{_INTERNAL_SPEAKER_SIZE}</internalSpeakerSize>"
-        f"<memory>{_MEMORY}</memory>"
-        f"<flash>{_FLASH}</flash>"
         f"<apiVersion>{esc(cfg.api_version)}</apiVersion>"
         f"<minApiVersion>{esc(cfg.min_api_version)}</minApiVersion>"
         f"<extraVersion>{esc(cfg.extra_version)}</extraVersion>"
         f"<nsVersion>{_NS_VERSION}</nsVersion>"
-        f"{features}"
+        f"{versions}"
+        f"<variant>{esc(cfg.variant)}</variant>"
+        f"<internalSpeakerSize>{_INTERNAL_SPEAKER_SIZE}</internalSpeakerSize>"
+        f"<memory>{_MEMORY}</memory>"
+        f"<flash>{_FLASH}</flash>"
+        f"<flashRepartitioned>{_FLASH_REPARTITIONED}</flashRepartitioned>"
+        f"<ampOnTime>{_AMP_ON_TIME}</ampOnTime>"
+        f"<retailMode>{_RETAIL_MODE}</retailMode>"
         f"<SSLPort>{_SSL_PORT}</SSLPort>"
         f"<securehhSSLPort>{_SECURE_HH_SSL_PORT}</securehhSSLPort>"
-        f"{versions}"
+        f"{features}"
     )
 
 
