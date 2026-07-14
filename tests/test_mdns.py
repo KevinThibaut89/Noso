@@ -2,10 +2,10 @@ from noso.mdns import instance_name, sonos_txt
 from tests.conftest import build_context
 
 
-def test_instance_name_is_sonos_mac():
-    ctx, _ = build_context(1400)
-    # Sonos-<12 hex, uppercase> — the real DNS-SD instance label format.
-    assert instance_name(ctx) == "Sonos-000E58A1B2C3"
+def test_instance_name_matches_real_format():
+    ctx, _ = build_context(1400, room="Test Room")
+    # Real speakers advertise RINCON_<mac>01400@<RoomName> (verified via capture).
+    assert instance_name(ctx) == "RINCON_000E58A1B2C301400@Test Room"
 
 
 def test_sonos_txt_records():

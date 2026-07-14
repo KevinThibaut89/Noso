@@ -33,8 +33,13 @@ SERVICE_TYPE = "_sonos._tcp.local."
 
 
 def instance_name(ctx: ServerContext) -> str:
-    """``Sonos-<MAC>`` — the DNS-SD service instance label."""
-    return f"Sonos-{ctx.identity.mac_hex}"
+    """The DNS-SD service instance label.
+
+    Verified from a live capture of real speakers, the label is
+    ``RINCON_<mac>01400@<RoomName>`` (e.g. ``RINCON_B8E93799FA0201400@Living
+    Room``) — not ``Sonos-<MAC>``. The app parses the RINCON and room out of it.
+    """
+    return f"{ctx.identity.rincon}@{ctx.state.room_name}"
 
 
 def household_id(ctx: ServerContext) -> str:
@@ -74,11 +79,11 @@ class _ZeroconfBackend:
         mac = self.ctx.identity.mac_hex
         self._info = ServiceInfo(
             type_=SERVICE_TYPE,
-            name=f"Sonos-{mac}.{SERVICE_TYPE}",
+            name=f"{instance_name(self.ctx)}.{SERVICE_TYPE}",
             addresses=[socket.inet_aton(self.ctx.ip)],
             port=self.ctx.config.http_port,
             properties={k.encode(): v.encode() for k, v in sonos_txt(self.ctx).items()},
-            server=f"Sonos-{mac}.local.",
+            server=f"Sonos-{mac}.local.",  # A-record host (no spaces/@ allowed)
         )
         self._zc = Zeroconf(ip_version=IPVersion.V4Only)
         # cooperating_responders: don't fight another mDNS stack for the name
@@ -102,8 +107,7 @@ class _AvahiBackend:
         self._proc: subprocess.Popen | None = None
 
     def start(self) -> None:
-        mac = self.ctx.identity.mac_hex
-        args = ["avahi-publish-service", f"Sonos-{mac}", "_sonos._tcp",
+        args = ["avahi-publish-service", instance_name(self.ctx), "_sonos._tcp",
                 str(self.ctx.config.http_port)]
         for key, value in sonos_txt(self.ctx).items():
             args.append(f"{key}={value}")
